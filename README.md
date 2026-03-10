@@ -1,6 +1,6 @@
-# 🤖 Desea Check-in Bot
+# 🤖 DeepSea Check-in Bot
 
-> Automated daily check-in bot for [Desea Airdrop](https://airdrop.desea.io?ref=DdLj0irjd0) — supports multiple accounts and rotating proxies.
+> Automated daily check-in bot for [DeepSea Airdrop](https://airdrop.desea.io?ref=DdLj0irjd0) — supports multiple accounts and rotating proxies.
 
 🎁 Use my referral code to support me: **`DdLj0irjd0`**
 
@@ -102,7 +102,7 @@ node index.js
 
 ```
 ==================================================
-🚀 Desea Check-in
+🚀 DeepSea Check-in
 📌 @mejri02
 ==================================================
 
@@ -159,7 +159,7 @@ If this bot helped you, please register using the referral link below:
 
 ## ⚠️ Disclaimer
 
-This bot is intended for personal use only. Use responsibly and in accordance with Desea's Terms of Service. The author is not responsible for any account bans or loss of rewards.
+This bot is intended for personal use only. Use responsibly and in accordance with DeepSea's Terms of Service. The author is not responsible for any account bans or loss of rewards.
 
 ---
 
