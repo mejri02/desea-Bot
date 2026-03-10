@@ -1,0 +1,8 @@
+{
+    "headless": true,
+    "timeout": 30000,
+    "delayBetweenAccounts": 5000,
+    "maxRetries": 2,
+    "useProxy": true,
+    "executablePath": "/usr/bin/chromium"
+}
