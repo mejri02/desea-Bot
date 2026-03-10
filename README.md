@@ -2,7 +2,7 @@
 
 > Automated daily check-in bot for [Desea Airdrop](https://airdrop.desea.io?ref=DdLj0irjd0) — supports multiple accounts and rotating proxies.
 
-> 🎁 Use my referral code to support me: **`DdLj0irjd0`**
+🎁 Use my referral code to support me: **`DdLj0irjd0`**
 
 **📌 Author:** [@mejri02](https://github.com/mejri02)  
 **📦 Repo:** [desea-Bot](https://github.com/mejri02/desea-Bot)
@@ -48,7 +48,7 @@ sudo pacman -S chromium
 brew install --cask chromium
 ```
 
-> ⚠️ The bot looks for Chromium at `/usr/bin/chromium` by default. Update `executablePath` in `bot.js` if yours is installed elsewhere.
+> ⚠️ The bot looks for Chromium at `/usr/bin/chromium` by default. Update `executablePath` in `index.js` if yours is installed elsewhere.
 
 ---
 
@@ -57,8 +57,8 @@ brew install --cask chromium
 ### 1. Clone the repo
 
 ```bash
-git clone https://github.com/mejri02/desea-bot.git
-cd desea-bot
+git clone https://github.com/mejri02/desea-Bot.git
+cd desea-Bot
 ```
 
 ### 2. Install dependencies
