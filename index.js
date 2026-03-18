@@ -10,10 +10,10 @@ class DeseaCheckinBot {
             delayBetweenAccounts: 5000,
             executablePath: '/usr/bin/chromium',
             sleepHours: 24,
-            jitterPercent: 0.2
+            jitterPercent: 0.2,
+            useProxy: false
         };
         
-        // 10 random user agents
         this.userAgents = [
             'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
             'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36',
@@ -33,8 +33,6 @@ class DeseaCheckinBot {
         this.runCount = 0;
         this.useProxy = false;
     }
-
-    // ========== UTILITY FUNCTIONS ==========
     
     randomInt(min, max) {
         return Math.floor(Math.random() * (max - min + 1)) + min;
@@ -57,9 +55,36 @@ class DeseaCheckinBot {
         return new Promise(resolve => setTimeout(resolve, ms));
     }
 
-    // ========== PROXY FUNCTIONS ==========
+    showBanner() {
+        console.clear();
+        console.log('\x1b[36m%s\x1b[0m', '╔═══════════════════════════════════════════════════════════════════════╗');
+        console.log('\x1b[36m%s\x1b[0m', '║                                                                       ║');
+        console.log('\x1b[36m%s\x1b[0m', '║                    🚀 DESEA CHECK-IN BOT v2.0                          ║');
+        console.log('\x1b[36m%s\x1b[0m', '║                                                                       ║');
+        console.log('\x1b[36m%s\x1b[0m', '║                        🔥 @mejri02                                     ║');
+        console.log('\x1b[36m%s\x1b[0m', '║                                                                       ║');
+        console.log('\x1b[36m%s\x1b[0m', '╚═══════════════════════════════════════════════════════════════════════╝');
+        console.log('\n');
+    }
+
+    async loadConfig() {
+        try {
+            const configData = await fs.readFile('config.json', 'utf8');
+            const userConfig = JSON.parse(configData);
+            this.config = { ...this.config, ...userConfig };
+            this.useProxy = this.config.useProxy;
+            console.log('\x1b[32m%s\x1b[0m', '✅ Config loaded successfully');
+        } catch (e) {
+            console.log('\x1b[33m%s\x1b[0m', '⚠️ Using default configuration');
+        }
+    }
     
     async loadProxies() {
+        if (!this.useProxy) {
+            console.log('\x1b[33m%s\x1b[0m', 'ℹ️ Proxy disabled in config');
+            return;
+        }
+        
         try {
             const proxyData = await fs.readFile('proxies.txt', 'utf8');
             const rawProxies = proxyData.split('\n')
@@ -67,35 +92,35 @@ class DeseaCheckinBot {
                 .map(line => line.trim());
             
             if (rawProxies.length === 0) {
-                console.log('ℹ️ No proxies found, running without proxies');
+                console.log('\x1b[33m%s\x1b[0m', 'ℹ️ No proxies found');
                 return;
             }
             
-            console.log(`📡 Loading ${rawProxies.length} proxies for multi-accounts...`);
+            process.stdout.write('\x1b[36m📡 Loading proxies: \x1b[0m');
             
             for (const proxy of rawProxies) {
                 try {
                     const anonymized = await proxyChain.anonymizeProxy(proxy);
                     this.anonymizedProxies.push(anonymized);
                     this.proxies.push(proxy);
-                    process.stdout.write('✅');
+                    process.stdout.write('\x1b[32m✅\x1b[0m');
                 } catch (e) {
-                    process.stdout.write('❌');
+                    process.stdout.write('\x1b[31m❌\x1b[0m');
                 }
             }
             
             console.log('\n');
             
             if (this.proxies.length > 0) {
-                this.useProxy = true;
-                console.log(`✅ Proxy mode: ENABLED (${this.proxies.length} working proxies)`);
+                console.log(`\x1b[32m✅ Proxy mode: ENABLED (${this.proxies.length} working proxies)\x1b[0m`);
                 process.on('exit', this.closeProxyServers.bind(this));
             } else {
-                console.log('ℹ️ No working proxies, running without proxies');
+                console.log('\x1b[33mℹ️ No working proxies found\x1b[0m');
+                this.useProxy = false;
             }
             
         } catch (e) {
-            console.log('ℹ️ No proxies.txt found, running without proxies');
+            console.log('\x1b[33mℹ️ No proxies.txt found\x1b[0m');
         }
     }
 
@@ -117,8 +142,6 @@ class DeseaCheckinBot {
             anonymized: this.anonymizedProxies[proxyIndex]
         };
     }
-
-    // ========== ACCOUNT FUNCTIONS ==========
     
     async loadAccounts() {
         const data = await fs.readFile('accounts.txt', 'utf8');
@@ -130,8 +153,6 @@ class DeseaCheckinBot {
             })
             .filter(acc => acc.email && acc.password);
     }
-
-    // ========== BROWSER FUNCTIONS ==========
     
     async launchBrowser(accountIndex) {
         const userAgent = this.getRandomUserAgent();
@@ -149,9 +170,8 @@ class DeseaCheckinBot {
 
         if (proxy) {
             args.push(`--proxy-server=${proxy.anonymized}`);
-            console.log(`   🌐 Proxy ${accountIndex + 1}/${this.proxies.length}: ${proxy.raw.split('@').pop() || proxy.raw}`);
-        } else {
-            console.log(`   🔌 Direct connection`);
+            const proxyDisplay = proxy.raw.split('@').pop() || proxy.raw;
+            console.log(`   \x1b[36m🌐 Proxy: ${proxyDisplay}\x1b[0m`);
         }
 
         return await puppeteer.launch({
@@ -160,14 +180,11 @@ class DeseaCheckinBot {
             args: args
         });
     }
-
-    // ========== LOGIN ==========
     
     async login(page, email, password) {
-        console.log(`   🔑 Logging in...`);
+        console.log(`   \x1b[33m🔑 Logging in...\x1b[0m`);
         
         try {
-            // Click Log In button
             await page.evaluate(() => {
                 const elements = Array.from(document.querySelectorAll('button, a'));
                 const loginBtn = elements.find(el => el.textContent?.trim() === 'Log In');
@@ -175,16 +192,12 @@ class DeseaCheckinBot {
             });
 
             await this.sleep(3000);
-
-            // Fill login form
             await page.waitForSelector('#username', { timeout: 10000 });
             await page.type('#username', email, { delay: this.randomInt(30, 70) });
             await this.sleep(500);
             await page.type('#password', password, { delay: this.randomInt(30, 70) });
-
             await this.sleep(1000);
 
-            // Submit
             await page.evaluate(() => {
                 const buttons = Array.from(document.querySelectorAll('button'));
                 const submitBtn = buttons.find(b => b.textContent?.trim() === 'Log In' || b.type === 'submit');
@@ -192,12 +205,11 @@ class DeseaCheckinBot {
             });
 
             await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 10000 }).catch(() => {});
-            
-            console.log(`   ✅ Login successful`);
+            console.log(`   \x1b[32m✅ Login successful\x1b[0m`);
             return true;
 
         } catch (error) {
-            console.log(`   ❌ Login failed: ${error.message}`);
+            console.log(`   \x1b[31m❌ Login failed\x1b[0m`);
             return false;
         }
     }
@@ -213,14 +225,12 @@ class DeseaCheckinBot {
             return await this.login(page, email, password);
         }
         
-        console.log(`   ✅ Already logged in`);
+        console.log(`   \x1b[32m✅ Already logged in\x1b[0m`);
         return true;
     }
-
-    // ========== CHECK-IN ONLY ==========
     
     async doCheckin(page) {
-        console.log(`   📍 Check-in...`);
+        console.log(`   \x1b[36m📍 Checking in...\x1b[0m`);
         
         await page.goto('https://airdrop.desea.io/checkin', {
             waitUntil: 'networkidle2',
@@ -231,8 +241,6 @@ class DeseaCheckinBot {
 
         const result = await page.evaluate(() => {
             const buttons = Array.from(document.querySelectorAll('button'));
-            
-            // Look for check-in button
             const checkinBtn = buttons.find(b => 
                 b.textContent?.trim() === 'Check-in Now' && !b.disabled
             );
@@ -242,7 +250,6 @@ class DeseaCheckinBot {
                 return { status: 'clicked' };
             }
             
-            // Check if already checked in
             const bodyText = document.body.innerText;
             if (bodyText.includes('already checked') || 
                 bodyText.includes('checked in today') ||
@@ -250,7 +257,6 @@ class DeseaCheckinBot {
                 return { status: 'already' };
             }
             
-            // Check if button exists but is disabled
             const disabledBtn = buttons.find(b => 
                 b.textContent?.trim() === 'Check-in Now' && b.disabled
             );
@@ -264,8 +270,6 @@ class DeseaCheckinBot {
 
         if (result.status === 'clicked') {
             await this.sleep(3000);
-            
-            // Verify success
             const success = await page.evaluate(() => {
                 const text = document.body.innerText;
                 return text.includes('success') || text.includes('claimed') || text.includes('+');
@@ -276,24 +280,20 @@ class DeseaCheckinBot {
         
         return result.status;
     }
-
-    // ========== PROCESS ACCOUNT ==========
     
     async processAccount(account, index) {
-        console.log(`\n▶️ ${account.email}`);
+        console.log(`\n\x1b[36m▶️ Account ${index + 1}: ${account.email}\x1b[0m`);
         
         let browser = null;
         try {
             browser = await this.launchBrowser(index);
             const page = await browser.newPage();
 
-            // Go to site
             await page.goto('https://airdrop.desea.io', {
                 waitUntil: 'networkidle2',
                 timeout: 30000
             });
 
-            // Login
             const loggedIn = await this.ensureLoggedIn(page, account.email, account.password);
             if (!loggedIn) {
                 return { 
@@ -302,54 +302,62 @@ class DeseaCheckinBot {
                 };
             }
 
-            // Check-in only
             const checkinStatus = await this.doCheckin(page);
-
-            return { 
-                email: account.email, 
-                status: checkinStatus
-            };
+            return { email: account.email, status: checkinStatus };
 
         } catch (error) {
-            console.log(`   ❌ Error: ${error.message}`);
-            return { 
-                email: account.email, 
-                status: 'error'
-            };
+            return { email: account.email, status: 'error' };
         } finally {
             if (browser) await browser.close();
         }
     }
-
-    // ========== CYCLE MANAGEMENT ==========
+    
+    showDashboard(stats) {
+        console.log('\n\x1b[36m╔═══════════════════════════════════════════════════════════════════════╗\x1b[0m');
+        console.log('\x1b[36m║                       📊 LIVE DASHBOARD                               ║\x1b[0m');
+        console.log('\x1b[36m╠═══════════════════════════════════════════════════════════════════════╣\x1b[0m');
+        
+        const total = stats.success + stats.already + stats.notfound + stats.loginFailed + stats.error;
+        const successRate = total > 0 ? ((stats.success / total) * 100).toFixed(1) : 0;
+        
+        console.log(`\x1b[36m║  \x1b[32m✅ Success:\x1b[0m       ${stats.success.toString().padEnd(5)}            \x1b[36m│\x1b[0m  \x1b[36m📊 Rate:\x1b[0m       ${successRate}%        \x1b[36m║\x1b[0m`);
+        console.log(`\x1b[36m║  \x1b[33m⏭️ Already:\x1b[0m       ${stats.already.toString().padEnd(5)}            \x1b[36m│\x1b[0m  \x1b[36m🌐 Proxy:\x1b[0m      ${this.useProxy ? 'ON' : 'OFF'}        \x1b[36m║\x1b[0m`);
+        console.log(`\x1b[36m║  \x1b[35m🔍 Not Found:\x1b[0m     ${stats.notfound.toString().padEnd(5)}            \x1b[36m│\x1b[0m  \x1b[36m📱 UA:\x1b[0m         ${this.userAgents.length}         \x1b[36m║\x1b[0m`);
+        console.log(`\x1b[36m║  \x1b[31m🔒 Login Failed:\x1b[0m  ${stats.loginFailed.toString().padEnd(5)}            \x1b[36m│\x1b[0m  \x1b[36m🔄 Run:\x1b[0m        #${this.runCount}        \x1b[36m║\x1b[0m`);
+        console.log(`\x1b[36m║  \x1b[31m❌ Error:\x1b[0m         ${stats.error.toString().padEnd(5)}            \x1b[36m│\x1b[0m  \x1b[36m👥 Accounts:\x1b[0m   ${total}         \x1b[36m║\x1b[0m`);
+        
+        console.log('\x1b[36m╚═══════════════════════════════════════════════════════════════════════╝\x1b[0m');
+    }
     
     async runCycle() {
         this.runCount++;
         const startTime = new Date();
         
-        console.log('\n' + '='.repeat(70));
-        console.log(`🔄 RUN #${this.runCount} - ${startTime.toLocaleString()}`);
-        console.log('='.repeat(70));
-
         const accounts = await this.loadAccounts();
-        console.log(`\n📋 Processing ${accounts.length} accounts...`);
-        console.log(`🌐 Proxy mode: ${this.useProxy ? 'ON' : 'OFF'}`);
-        if (this.useProxy) console.log(`🔄 Rotating through ${this.proxies.length} proxies`);
-
         const cycleResults = [];
 
         for (let i = 0; i < accounts.length; i++) {
             const result = await this.processAccount(accounts[i], i);
             cycleResults.push(result);
             
+            const stats = {
+                success: cycleResults.filter(r => r.status === 'success').length,
+                already: cycleResults.filter(r => r.status === 'already').length,
+                notfound: cycleResults.filter(r => r.status === 'notfound').length,
+                loginFailed: cycleResults.filter(r => r.status === 'login_failed').length,
+                error: cycleResults.filter(r => r.status === 'error').length
+            };
+            
+            this.showDashboard(stats);
+            
             if (i < accounts.length - 1) {
                 const waitTime = 5000 + Math.random() * 3000;
-                console.log(`\n⏳ ${Math.round(waitTime/1000)}s until next account...`);
+                console.log(`\n\x1b[33m⏳ Waiting ${Math.round(waitTime/1000)}s before next account...\x1b[0m`);
                 await this.sleep(waitTime);
+                this.showBanner();
             }
         }
 
-        // Save results
         await fs.writeFile(`cycle_${this.runCount}.json`, JSON.stringify({
             run: this.runCount,
             timestamp: startTime.toISOString(),
@@ -358,66 +366,20 @@ class DeseaCheckinBot {
             results: cycleResults
         }, null, 2));
 
-        // Summary with proper emojis
-        console.log('\n' + '='.repeat(70));
-        console.log(`📊 CYCLE #${this.runCount} SUMMARY`);
-        console.log('='.repeat(70));
-        
-        let success = 0, already = 0, notfound = 0, loginFailed = 0, error = 0;
-        
-        for (const r of cycleResults) {
-            let emoji = '❓';
-            let statusText = r.status;
-            
-            if (r.status === 'success') {
-                emoji = '✅';
-                success++;
-            } else if (r.status === 'already') {
-                emoji = '⏭️';
-                already++;
-            } else if (r.status === 'notfound') {
-                emoji = '🔍';
-                notfound++;
-            } else if (r.status === 'login_failed') {
-                emoji = '🔒';
-                loginFailed++;
-            } else {
-                emoji = '❌';
-                error++;
-            }
-            
-            const proxyIcon = this.useProxy ? '🌐' : '🔌';
-            console.log(`${emoji}${proxyIcon} ${r.email}: ${statusText}`);
-        }
-        
-        console.log('='.repeat(70));
-        console.log(`✅ Success: ${success}`);
-        console.log(`⏭️ Already checked: ${already}`);
-        console.log(`🔍 Not found: ${notfound}`);
-        console.log(`🔒 Login failed: ${loginFailed}`);
-        console.log(`❌ Error: ${error}`);
-        if (this.useProxy) console.log(`🌐 Proxies: ${this.proxies.length}`);
-        console.log('='.repeat(70));
-
         return cycleResults;
     }
-
-    // ========== MAIN LOOP ==========
     
     async run() {
-        console.log('='.repeat(70));
-        console.log('🚀 Desea Check-in Bot');
-        console.log('📌 @mejri02');
-        console.log('='.repeat(70));
-
-        // Load proxies (optional)
-        await this.loadProxies();
+        this.showBanner();
+        await this.loadConfig();
         
         const accounts = await this.loadAccounts();
-        console.log(`📋 Loaded ${accounts.length} accounts`);
-        console.log(`⏰ Runs every ${this.config.sleepHours}h with ±${this.config.jitterPercent*100}% jitter`);
-        console.log(`📱 User Agents: ${this.userAgents.length} random`);
-        console.log('='.repeat(70));
+        console.log(`\x1b[36m📋 Loaded ${accounts.length} accounts\x1b[0m`);
+        
+        await this.loadProxies();
+        
+        console.log(`\x1b[36m⏰ Schedule: Every ${this.config.sleepHours}h ±${this.config.jitterPercent*100}%\x1b[0m`);
+        console.log('\x1b[36m' + '─'.repeat(70) + '\x1b[0m');
 
         while (true) {
             try {
@@ -426,17 +388,18 @@ class DeseaCheckinBot {
                 const { sleepTime, hours, minutes } = this.calculateSleepTime();
                 const nextRun = new Date(Date.now() + sleepTime);
                 
-                console.log(`\n😴 Sleeping ${hours}h ${minutes}m until ${nextRun.toLocaleString()}`);
+                console.log(`\n\x1b[35m😴 Sleeping ${hours}h ${minutes}m until ${nextRun.toLocaleString()}\x1b[0m\n`);
                 await this.sleep(sleepTime);
+                this.showBanner();
 
             } catch (error) {
-                console.error(`\n❌ Error: ${error.message}`);
-                console.log('🔄 Restarting in 5 minutes...');
+                console.error(`\n\x1b[31m❌ Error: ${error.message}\x1b[0m`);
+                console.log('\x1b[33m🔄 Restarting in 5 minutes...\x1b[0m');
                 await this.sleep(5 * 60 * 1000);
+                this.showBanner();
             }
         }
     }
 }
 
-// Start the bot
 new DeseaCheckinBot().run().catch(console.error);

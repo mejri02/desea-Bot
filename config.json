@@ -2,7 +2,8 @@
     "headless": true,
     "timeout": 30000,
     "delayBetweenAccounts": 5000,
-    "maxRetries": 2,
-    "useProxy": true,
-    "executablePath": "/usr/bin/chromium"
+    "executablePath": "/usr/bin/chromium",
+    "sleepHours": 24,
+    "jitterPercent": 0.2,
+    "useProxy": false
 }
